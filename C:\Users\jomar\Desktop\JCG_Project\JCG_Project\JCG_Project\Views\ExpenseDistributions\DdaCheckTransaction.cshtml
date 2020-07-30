@@ -1,0 +1,294 @@
+@model IEnumerable<JCG_Project.Models.AccountTransaction>
+
+@{
+	ViewBag.Title = "DdaCheckTransaction";
+	Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Check transactions</h2>
+
+
+@{
+	foreach (var item in Model)
+	{
+		<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+			<div class="panel panel-default">
+				<div class="panel-heading" role="tab" id="headingOne">
+					<div class="panel-title">
+
+						<a role="button" data-toggle="collapse" data-parent="#accordion" href="@string.Format("#collapse{0}",item.TransactionID)" aria-expanded="true" aria-controls="collapseOne">
+							<span class="description">@item.Description</span>
+							<span class="category">@item.Category </span>
+							<span class="date">@string.Format("{0:d} ", item.Transaction_DateTime)</span>
+							<span class="quantity">@item.Amount</span>
+						</a>
+
+						<a onclick="ShowDetail(this)" class="pull-right">
+							<input type="hidden" class="transactionID" value="@item.TransactionID" />
+							<input type="hidden" class="description" value="@item.Description" />
+							<input type="hidden" class="category" value="@item.Category" />
+							<input type="hidden" class="date" value="@string.Format("{0:d} ", item.Transaction_DateTime)" />
+							<input type="hidden" class="quantity" value="@item.Amount" />
+							<span>set details</span>
+						</a>
+
+					</div>
+				</div>
+				<div id="@string.Format("collapse{0}",item.TransactionID)" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOne">
+
+					@Html.Partial("CheckList", item.CheckDists)
+
+				</div>
+			</div>
+		</div>
+
+	}
+}
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+				<h3 class="modal-title" id="exampleModalLongTitle">Set check account transactions distribution</h3>
+			</div>
+			<div id="trxDetails" class="modal-body">
+
+				<input type="hidden" id="transactionID" />
+
+				<dl class="dl-horizontal">
+					
+
+					<dt>Description</dt>
+					<dd id="description"></dd>
+
+					<dt>Category</dt>
+					<dd id="category"></dd>
+
+					<dt>Date Time</dt>
+					<dd id="date"></dd>
+
+					<dt>Amount</dt>
+					<dd id="quantity"></dd>
+
+				</dl>
+				<hr />
+				<table class="table">
+					<thead>
+						<tr>
+							<th>Category</th>
+							<th>Amount</th>
+							<th colspan="3"><a onclick="confirmMethod()" title="Refresh" class="btn-sm btn-primary pull-left" href="#"><i class="glyphicon glyphicon-refresh"></i></a><a onclick="AddRow()" title="Add row" class="btn btn-sm btn-default pull-right"><i class="glyphicon glyphicon-plus"></i></a></th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>@Html.TextBox("Category0", null, new { @class = "form-control" })</td>
+							<td colspan="3">@Html.TextBox("Amount0", null, new { @class = "form-control text-right", type = "number", step = "0.01", onchange = "TotalAmount()" })</td>
+							<th><a onclick="RemoveRow(this)" class=" btn-sm btn-danger pull-right">Remove</a></th>
+						</tr>
+						<tr>
+							<td>@Html.TextBox("Category1", null, new { @class = "form-control" })</td>
+							<td colspan="3">@Html.TextBox("Amount1", null, new { @class = "form-control text-right", type = "number", step = "0.01", onchange = "TotalAmount()" })</td>
+							<th><a onclick="RemoveRow(this)" class="btn-sm btn-danger pull-right">Remove</a></th>
+						</tr>
+						<tr>
+							<td>@Html.TextBox("Category2", null, new { @class = "form-control" })</td>
+							<td colspan="3">@Html.TextBox("Amount2", null, new { @class = "form-control text-right", type = "number", step = "0.01", onchange = "TotalAmount()" })</td>
+							<th><a onclick="RemoveRow(this)" class="btn-sm btn-danger pull-right">Remove</a></th>
+						</tr>
+					</tbody>
+					<tfoot>
+						<tr>
+							<td colspan="5" id="totalAmount" class="text-right" style="font-weight:bold"></td>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+			<div class="modal-footer">
+				<button class="btn btn-success disabled" id="btnSave">Save</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+@section scripts{
+
+	<script>
+
+		var trxID;
+
+		$('.collapse').collapse()
+
+		var checkTotalAmount = 0;
+
+		function ShowDetail(el) {
+			$('#exampleModalCenter').modal('show');
+			$(el).parents(".panel").removeClass("panel-default");
+			$(el).parents(".panel").addClass("panel-primary");
+
+			trxID = $(el).find("input.transactionID").val();
+			$("#description").html($(el).find("input.description").val());
+			$("#category").html($(el).find("input.category").val());
+			$("#date").html($(el).find("input.date").val());
+			$("#quantity").html($(el).find("input.quantity").val());
+
+			checkTotalAmount = parseFloat($(el).find("input.quantity").val());
+
+			$("#trxDetails input").each(function (index, element) {
+				$(element).val("");
+			});
+
+			$("#totalAmount").html("Total: 0.00");
+
+			$('#exampleModalCenter').on('hidden.bs.modal', function (e) {
+
+				$(el).parents(".panel").removeClass("panel-primary");
+				$(el).parents(".panel").addClass("panel-default");
+
+			});
+
+		}
+
+
+		function RemoveRow(el) {
+
+			var rowIndex = $("#trxDetails table tbody tr").length;
+
+			if (rowIndex > 3) {
+
+				$(el).parents("tr").remove();
+
+				TotalAmount();
+			}
+
+		}
+
+		function confirmMethod() {
+			var reset = confirm("This action will clear all the inputs, do you want to continue?");
+
+			if (reset) {
+				ResetRow();
+			}
+		}
+
+		function ResetRow() {
+
+			$("#trxDetails table tbody tr").remove();
+
+			for (var i = 0; i < 3; i++) {
+
+				var nextRow = '<tr><td><input class="form-control" id="Category' + i.toString() + '" name="Category' + i.toString() + '" type="text" value=""></td> <td colspan="3"><input class="form-control text-right"  id="Amount' + i.toString() + '" name="Amount' + i.toString() + '" type="number" , onchange="TotalAmount()" step = "0.01" value=""></td><th><a onclick="RemoveRow(this)" class="btn-sm btn-danger pull-right" href="#">Remove</a></th></tr>'
+
+				$("#trxDetails table tbody").append(nextRow);
+			}
+		}
+
+
+		function AddRow() {
+			var rowIndex = $("#trxDetails table tbody tr").length;
+			var nextRow = '<tr><td><input class="form-control" id="Category' + rowIndex.toString() + '" name="Category' + rowIndex.toString() + '" type="text" value=""></td> <td colspan="3"><input class="form-control text-right"  id="Amount' + rowIndex.toString() + '" name="Amount' + rowIndex.toString() + '" type="number" , onchange="TotalAmount()" step = "0.01" value=""></td><th><a onclick="RemoveRow(this)" class="btn-sm btn-danger pull-right" href="#">Remove</a></th></tr>'
+			$("#trxDetails table tbody").append(nextRow);
+		}
+
+		function TotalAmount() {
+			var total = 0;
+			$("#totalAmount").html("Total: " + total.toFixed(2).toString());
+
+			$("#trxDetails table tbody input[name^='Amount']").each(function (ix, el) {
+				var amount = $(el).val();
+				if (amount != "") {
+					total += parseFloat(amount);
+					$("#totalAmount").html("Total: " + total.toFixed(2).toString());
+					if (-checkTotalAmount == total) {
+						$("#btnSave").removeClass("disabled");
+					}
+					else {
+						$("#btnSave").addClass("disabled");
+					}
+				}
+
+			});
+		}
+
+
+		$("#btnSave").click(function () {
+
+				var data = [];
+				var amountData = [];
+				var categoryData = [];
+
+				$("#trxDetails tr.danger").removeClass("danger");
+
+					$("#trxDetails table tbody input[name^='Category']").each(function (ix, el) {
+						var category = $(el).val();
+						categoryData.push(category);
+					});
+
+					$("#trxDetails table tbody input[name^='Amount']").each(function (ix, el) {
+						var amount = $(el).val();
+						amountData.push(amount);
+					});
+
+					for (var i = 0; i < $("#trxDetails table tbody tr").length; i++) {
+
+						if ((categoryData[i] != "" && amountData[i] == null) || (categoryData[i] == "" && amountData[i] != null)) {
+
+							$($("#trxDetails table tbody tr")[i]).addClass("danger");
+
+						}
+
+					}
+
+					for (var i = 0; i < $("#trxDetails table tbody tr").length; i++) {
+
+						if (categoryData[i] != "" && amountData[i] != null) {
+							data.push({ Category: categoryData[i], Amount: amountData[i] });
+						}
+
+					}
+
+				//var dataDetails = "";
+
+				//for (var i = 0; i < data.length; i++) {
+				//	dataDetails += dataDetails + "categoryAndAmount[" + i.toString() + "].Category=" + data[i].Category + "&";
+				//	dataDetails += dataDetails + "categoryAndAmount[" + i.toString() + "].Amount=" + data[i].Amount.toString() + "&";
+				//}
+
+				var check = { ID: trxID, CategoryAndAmounts: data };
+
+				var JsonData = JSON.stringify(check);
+
+				@*var url = "@Url.Action("SaveDetails", "ExpenseDistributions")"
+
+				$.post(url, JsonData).done(function (data) {
+					var myJSON = JSON.stringify(data);
+					alert(myJSON);
+				});*@
+
+				   $.ajax({
+					   type: 'post',
+					   url: '/ExpenseDistributions/SaveDetails',
+					   data: JsonData,
+					   contentType: 'application/json; charset=utf-8',
+
+					   success: function (response) {
+						   $('#exampleModalCenter').modal('hide');
+						   swal("Perfect!", "Your data has been send", "success");
+					},
+					   error: function (response) {
+						   swal("Ugh!", "Something went wrong", "error");
+						  
+					}
+					});
+			});
+	
+
+
+
+	</script>
+
+}
